@@ -1,0 +1,11 @@
+{
+  "Module Path": ["Management", "Management", "PlantDev", "PlantDev", "PlantDev", "PlantDev", "PlantDev"],
+  "Module": ["Management", "Management", "PlantDev", "PlantDev", "PlantDev", "PlantDev", "PlantDev"],
+  "Name": ["sowingDays", "harvestDays", "gdd_requirements", "gdd_requirements", "gdd_requirements", "gdd_requirements", "gdd_requirements"],
+  "Unit": ["ordinal day of year", "ordinal day of year", "deg C d", "deg C d", "deg C d", "deg C d", "deg C d"],
+  "Initial Value": [135, 325, 120, 500, 200, 350, 200],
+  "Min": [100, 280, 80, 300, 100, 100, 100],
+  "Max": [200, 360, 160, 1000, 500, 500, 500],
+  "Phase Specific": [false, false, true, true, true, true, true],
+  "Phase": [null, null, "germination", "vegetative", "anthesis", "grainfill", "maturity"]
+}
