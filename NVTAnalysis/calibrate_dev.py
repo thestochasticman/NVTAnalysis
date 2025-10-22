@@ -14,13 +14,11 @@ def calibrate_dev(
     param_bounds =  list(zip(parameters.df["Min"].values, parameters.df["Max"].values))
     result = differential_evolution(
         objective_function,
-            bounds = param_bounds,
-            args=(parameters.df, [query]),
-            popsize=5,
-            tol=0.00,
-            maxiter=100,
-            workers=-1
+        bounds = param_bounds,
+        args=(parameters.df, [query]),
+        popsize=5,
+        tol=0.00,
+        maxiter=100,
+        workers=-1
     )
     return result
-
-

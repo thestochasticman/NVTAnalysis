@@ -36,7 +36,7 @@ def get_n_representative_sites(tmp_dir: str, out_dir: str):
             download_environmental_data(query)
 
         df = read_csv(f'{query.stub_tmp_dir}/environmental/{query.stub}_DAESim_forcing.csv')
-        print(df)
+        
         if 'date' in df.columns:
             df = df.rename(columns={'date': 'Date'})
             df.to_csv(f'{query.stub_tmp_dir}/environmental/{query.stub}_DAESim_forcing.csv', index='Date')

@@ -34,7 +34,6 @@ def get_target_and_uncertainity_from_query(query: Query, sampler: CanolaStageSam
     ].iloc[0].tolist()
     observables_uncertainty = [5, 5, 5, 5, 5]
     # x = sampler.sample(str(query.start_time), str(query.end_time), n=1)
-
     target_df = DataFrame({
         "Name": observables_names,
         "Units": observables_units,

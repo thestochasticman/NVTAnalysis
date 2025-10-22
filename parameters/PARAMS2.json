@@ -1,0 +1,11 @@
+{
+    "Module Path": ["PlantDev", "PlantDev", "PlantDev", "PlantDev", "PlantDev"],
+    "Module": ["PlantDev", "PlantDev", "PlantDev", "PlantDev", "PlantDev"],
+    "Name": ["gdd_requirements", "gdd_requirements", "gdd_requirements", "gdd_requirements", "gdd_requirements"],
+    "Unit": ["deg C d", "deg C d", "deg C d", "deg C d", "deg C d"],
+    "Initial Value": [120, 500, 200, 350, 200],
+    "Min": [30, 30, 30, 30, 30],
+    "Max": [1000, 1000, 1000, 1000, 1000],
+    "Phase Specific": [true, true, true, true, true],
+    "Phase": ["germination","vegetative", "anthesis", "grainfill", "maturity"]
+}

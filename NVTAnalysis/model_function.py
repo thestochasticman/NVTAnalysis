@@ -40,5 +40,4 @@ def model_function(params: np.ndarray, params_info: DataFrame, query: Query):
             reset_days = [sowing_nday[0], harvest_nday[0]]
      
     model_output = run_model_and_get_outputs(model_instance, ODEModelSolver, time_axis, forcing_inputs, reset_days, zero_crossing_indices)
-
     return model_output
