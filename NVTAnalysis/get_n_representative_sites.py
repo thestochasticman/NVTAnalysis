@@ -35,5 +35,3 @@ def get_n_representative_sites():
         if not exists(f'{query.stub_tmp_dir}/environmental/{query.stub}_DAESim_forcing.csv'):
             download_environmental_data(query)
     return queries
-
-    

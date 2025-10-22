@@ -21,5 +21,6 @@ def calibrate_dev(
             maxiter=100,
             workers=-1
     )
+    return result
 
 
