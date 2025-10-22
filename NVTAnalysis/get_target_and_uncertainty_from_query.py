@@ -8,9 +8,11 @@ def get_target_and_uncertainity_from_query(query: Query, sampler: CanolaStageSam
         "start of vegetative",
         "start of flowering",
         "start of grainfill",
+        "start of maturity",
         "harvest"
     ]
     observables_units = [
+        "ordinal day of year",
         "ordinal day of year",
         "ordinal day of year",
         "ordinal day of year",
@@ -21,9 +23,18 @@ def get_target_and_uncertainity_from_query(query: Query, sampler: CanolaStageSam
     df=load_df_forcing(f'{query.stub_tmp_dir}/environmental/{query.stub}_DAESim_forcing.csv')
     synthetic_observables_df = sampler.sample(str(query.start_time), str(query.end_time), n=100)
     # synthetic_observables_df = sampler2.extract(df, str(query.start_time), str(query.end_time), n=5)
-    observables_values = synthetic_observables_df[['vegetative_start_doy', 'flowering_start_doy', 'grainfill_start_doy', 'harvest_doy']].iloc[0].tolist()
-    observables_uncertainty = [5, 5, 5, 5]
+    observables_values = synthetic_observables_df[
+        [
+            'vegetative_start_doy',
+            'flowering_start_doy',
+            'grainfill_start_doy',
+            'maturity_start_doy',
+            'harvest_doy'
+        ]
+    ].iloc[0].tolist()
+    observables_uncertainty = [5, 5, 5, 5, 5]
     # x = sampler.sample(str(query.start_time), str(query.end_time), n=1)
+
     target_df = DataFrame({
         "Name": observables_names,
         "Units": observables_units,

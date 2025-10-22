@@ -153,11 +153,24 @@ def run_model_and_get_outputs(Plant, ODEModelSolver, time_axis, forcing_inputs, 
     # import pdb; pdb.set_trace()
     # Model output (of observables) given the parameter vector p
     # - this is the model output that we compare to observations and use to calibrate the parameters
+    # np.where(diagnostics['idevphase'][it_phase_transitions] == Plant.PlantDev.phases.index('grainfill'))
+  
+    # print(np.where(diagnostics['idevphase'][it_phase_transitions] == Plant.PlantDev.phases.index('maturity')))
+    try:
+        ip = np.where(diagnostics['idevphase'][it_phase_transitions] == Plant.PlantDev.phases.index('maturity'))[0][0]
+        tdoy_maturity = time_axis[it_phase_transitions[ip]]
+
+    except:
+       
+
+        tdoy_maturity = tdoy_harvest // 2
+
     M_p = np.array([
         tdoy_vegetative, 
         tdoy_anth0, 
         tdoy_anth1,
+        tdoy_maturity,
         tdoy_harvest,
     ])
-
+    
     return M_p

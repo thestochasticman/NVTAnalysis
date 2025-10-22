@@ -21,4 +21,5 @@ def objective_function(params: np.ndarray, params_info: DataFrame, queries: list
         error = np.mean( ((model_outputs - observations) ** 2) / (observations_unc_sigma**2))
         error = calculate_error_for_one_site(q, int_params, params_info)
         errors += [error]
+    print(errors)
     return sum(errors)/len(errors)

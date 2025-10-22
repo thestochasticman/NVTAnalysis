@@ -4,7 +4,7 @@ from pandas import read_csv
 from os.path import exists
 from datetime import date
 
-def get_n_representative_sites():
+def get_n_representative_sites(tmp_dir: str, out_dir: str):
     queries = []
     df_Hyola_Blazer_TT = read_csv('data/selected_10_Hyola_Blazer_TT.csv')
     for idx, row in df_Hyola_Blazer_TT.iterrows():
@@ -27,11 +27,17 @@ def get_n_representative_sites():
             ],
             start_time=date.fromisoformat(row['SowingDate']),
             end_time=date.fromisoformat(row['HarvestDate']),
-            out_dir='/g/data/xe2/ya6227/NVTAnalysis/data/DAESim',
-            tmp_dir='/g/data/xe2/ya6227/NVTAnalysis/data/DAESim',
+            out_dir=out_dir,
+            tmp_dir=tmp_dir,
             stub=row['TrialCode']
         )
         queries += [query]
         if not exists(f'{query.stub_tmp_dir}/environmental/{query.stub}_DAESim_forcing.csv'):
             download_environmental_data(query)
+
+        df = read_csv(f'{query.stub_tmp_dir}/environmental/{query.stub}_DAESim_forcing.csv')
+        print(df)
+        if 'date' in df.columns:
+            df = df.rename(columns={'date': 'Date'})
+            df.to_csv(f'{query.stub_tmp_dir}/environmental/{query.stub}_DAESim_forcing.csv', index='Date')
     return queries

@@ -7,9 +7,11 @@ from pandas import Timestamp
 from daesim2_analysis.utils import load_df_forcing
 from daesim2_analysis.forcing_data import ForcingData
 from daesim.utils import ODEModelSolver
+from pandas import read_csv
 
 def get_input_data_from_query(query: Query):
     SiteX = ClimateModule(CLatDeg=query.lat,CLonDeg=query.lon,timezone=10)
+
     ForcingDataX = ForcingData(
         SiteX=SiteX,
         sowing_dates=[Timestamp(query.start_time)],
@@ -48,8 +50,6 @@ def get_input_data_from_query(query: Query):
         GDD_Tupp=25.0,
     )
     
-    # %%
-    ## Define the callable calculator that defines the right-hand-side ODE function
     PlantXCalc = PlantX.calculate
     
     input_data = [
