@@ -5,6 +5,7 @@ from os.path import exists
 from datetime import date
 
 def get_n_representative_sites():
+    queries = []
     df_Hyola_Blazer_TT = read_csv('data/selected_10_Hyola_Blazer_TT.csv')
     for idx, row in df_Hyola_Blazer_TT.iterrows():
         query = Query(

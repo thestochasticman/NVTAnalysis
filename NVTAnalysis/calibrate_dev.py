@@ -10,14 +10,16 @@ def calibrate_dev(
     parameters: Parameters=Parameters.__from_file__('parameters/PARAMS1.json'),
 ):
     params_info = parameters.df
-    params = Parameters.df['Initial Value'].values
+    params = parameters.df['Initial Value'].values
     param_bounds =  list(zip(parameters.df["Min"].values, parameters.df["Max"].values))
     result = differential_evolution(
-    objective_function,
-        bounds = param_bounds,
-        args=(parameters.df, [query]),
-        popsize=5,
-        tol=0.00,
-        maxiter=100,
-        workers=-1
+        objective_function,
+            bounds = param_bounds,
+            args=(parameters.df, [query]),
+            popsize=5,
+            tol=0.00,
+            maxiter=100,
+            workers=-1
     )
+
+
