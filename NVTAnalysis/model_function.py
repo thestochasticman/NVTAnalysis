@@ -1,19 +1,22 @@
 import numpy as np
 from pandas import DataFrame
 from PaddockTS.query import Query
+from NVTAnalysis.get_input_data_from_query import get_input_data_from_query
+from daesim2_analysis.run import update_attribute, update_attribute_in_phase
+from NVTAnalysis.run_model_and_get_outputs import run_model_and_get_outputs
 
 def model_function(params: np.ndarray, params_info: DataFrame, query: Query):
     input_data = get_input_data_from_query(query)
     ODEModelSolver, model_instance, time_axis, forcing_inputs, reset_days, zero_crossing_indices, time_nday_f, time_doy_f, time_year_f = input_data
     for idx, value in enumerate(params):
-        param_name = param_info["Name"].values[idx]
-        param_path = param_info["Module Path"].values[idx]
+        param_name = params_info["Name"].values[idx]
+        param_path = params_info["Module Path"].values[idx]
         full_path = f"{param_path}.{param_name}"
-        phase_specific = param_info["Phase Specific"].values[idx]
+        phase_specific = params_info["Phase Specific"].values[idx]
         
         if phase_specific:
             # Handle phase-specific parameters
-            phase = param_info["Phase"].values[idx]
+            phase = params_info["Phase"].values[idx]
             update_attribute_in_phase(model_instance, full_path, value, phase)
         else:
             if (param_name == "sowingDays") or (param_name == "harvestDays"):

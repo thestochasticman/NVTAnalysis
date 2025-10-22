@@ -1,3 +1,5 @@
+import numpy as np
+
 def run_model_and_get_outputs(Plant, ODEModelSolver, time_axis, forcing_inputs, reset_days, zero_crossing_indices):
     ## Define the callable calculator that defines the right-hand-side ODE function
     PlantCalc = Plant.calculate

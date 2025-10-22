@@ -1,5 +1,7 @@
 from PaddockTS.query import Query
 from NVTAnalysis.canola_stage_sampler import CanolaStageSampler
+from daesim2_analysis.utils import load_df_forcing
+from pandas import DataFrame
 
 def get_target_and_uncertainity_from_query(query: Query, sampler: CanolaStageSampler=CanolaStageSampler()):
     observables_names = [
@@ -22,7 +24,7 @@ def get_target_and_uncertainity_from_query(query: Query, sampler: CanolaStageSam
     observables_values = synthetic_observables_df[['vegetative_start_doy', 'flowering_start_doy', 'grainfill_start_doy', 'harvest_doy']].iloc[0].tolist()
     observables_uncertainty = [5, 5, 5, 5]
     # x = sampler.sample(str(query.start_time), str(query.end_time), n=1)
-    target_df = pd.DataFrame({
+    target_df = DataFrame({
         "Name": observables_names,
         "Units": observables_units,
         "Values": observables_values,
