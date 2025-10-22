@@ -1,129 +1,105 @@
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
 from dataclasses import dataclass
+
+def _to_ts(x):
+    if isinstance(x, pd.Timestamp):
+        return x.normalize()
+    if isinstance(x, str):
+        return pd.Timestamp(x)
+    if isinstance(x, np.datetime64):
+        return pd.Timestamp(x).normalize()
+    raise TypeError("Expected pd.Timestamp or 'YYYY-MM-DD' string.")
+
+def _doy(ts: pd.Timestamp) -> int:
+    return int(ts.dayofyear)
+
+def _trunc_normal(rng, mean: float, sd: float, low: float, high: float) -> float:
+    while True:
+        x = rng.normal(mean, sd)
+        if low <= x <= high:
+            return float(x)
 
 @dataclass
 class CanolaStageSampler:
-    # Expected fraction of the sowing->harvest calendar length spent in each segment:
-    # [germination lag, vegetative duration, anthesis duration, remainder to harvest]
-    mean_fractions: tuple = (0.09, 0.36, 0.15, 0.40)
+    # Emergence lag from sowing (days): TruncNorm(6, 2) within [0, 30]
+    mu_emerg_lag_d: float = 6.0
+    sd_emerg_lag_d: float = 2.0
 
-    # Concentration for the Dirichlet; higher = tighter around the mean
-    kappa: float = 30.0
+    # Vegetative start window after emergence (days): Uniform[7, 14]
+    veg_min_d: int = 7
+    veg_max_d: int = 14
 
-    # Minimum durations (days) for each segment to enforce realism and ordering
-    min_days: tuple = (5, 25, 7, 14)
+    # Start of flowering after emergence (days): TruncNorm(50, 3) within [45, 55]
+    sof_mean_d: float = 50.0 # 50
+    sof_sd_d: float = 3.0
+    sof_min_d: int = 45 # 45
+    sof_max_d: int = 55 # 60
 
-    # RNG for reproducibility (set to an int or leave None)
+    # Grainfill start after SOF (days): Uniform[12, 18]
+    gf_min_after_sof_d: int = 12
+    gf_max_after_sof_d: int = 18
+
+    # RNG seed (None = random)
     seed: int | None = 123
 
     def __post_init__(self):
         self.rng = np.random.default_rng(self.seed)
-        mf = np.asarray(self.mean_fractions, dtype=float)
-        if not np.isclose(mf.sum(), 1.0):
-            mf = mf / mf.sum()
-        self.mean_fractions = tuple(mf)
-        self.alpha = mf * float(self.kappa) + 1e-9  # keep strictly positive
 
-    @staticmethod
-    def _to_timestamp(x):
-        """Accepts pd.Timestamp / datetime / str('YYYY-MM-DD') / int DOY + optional year tuple."""
-        if isinstance(x, pd.Timestamp):
-            return x.normalize()
-        if isinstance(x, datetime):
-            return pd.Timestamp(x.date())
-        if isinstance(x, str):
-            return pd.Timestamp(x)
-        # If the user passes (doy, year) as a tuple:
-        if isinstance(x, tuple) and len(x) == 2:
-            doy, year = int(x[0]), int(x[1])
-            jan1 = pd.Timestamp(year=year, month=1, day=1)
-            return jan1 + pd.Timedelta(days=doy - 1)
-        # If it's just an int (assume DOY of current year)
-        if isinstance(x, int):
-            today_year = pd.Timestamp.today().year
-            jan1 = pd.Timestamp(year=today_year, month=1, day=1)
-            return jan1 + pd.Timedelta(days=int(x) - 1)
-        raise ValueError(f"Unrecognized date format: {x}")
-
-    @staticmethod
-    def _doy(ts: pd.Timestamp) -> int:
-        return int(ts.dayofyear)
-
-    def _fit_minima(self, total_days: int, eps_frac: float = 0.02):
-        """Ensure minima fit into the season; shrink proportionally if needed, leaving small slack."""
-        mins = np.array(self.min_days, dtype=float)
-        total_min = mins.sum()
-        if total_min >= total_days:
-            # shrink all minima to fit, keeping a tiny slack to allow variation
-            scale = (1.0 - eps_frac) * (total_days / total_min)
-            mins = np.maximum(1.0, np.floor(mins * scale))
-        return mins
-
-    def sample_one(self, sowing, harvest):
-        """
-        Returns a dict with Timestamp and DOY for:
-        - vegetative_start
-        - flowering_start
-        - grainfill_start
-        """
-        S = self._to_timestamp(sowing)
-        H = self._to_timestamp(harvest)
-        # If harvest is earlier in calendar than sowing, assume harvest is next year
+    def _sample_once(self, sowing, harvest):
+        S = _to_ts(sowing)
+        H = _to_ts(harvest)
         if H <= S:
             H = H + pd.DateOffset(years=1)
 
-        D = (H - S).days
-        if D < 10:
-            raise ValueError(f"Sowing->harvest span ({D} days) too short for realistic staging.")
+        # Sample emergence lag and compute emergence date
+        emerg_lag = _trunc_normal(self.rng, self.mu_emerg_lag_d, self.sd_emerg_lag_d, 0.0, 30.0)
+        Emergence = S + pd.Timedelta(days=int(round(emerg_lag)))
 
-        # Enforce minima via "slack" Dirichlet: durations = min_days + slack * Dir(alpha)
-        mins = self._fit_minima(D)
-        slack_days = max(1, D - int(mins.sum()))
-        w = self.rng.dirichlet(self.alpha)  # proportions that sum to 1
-        durations = mins + (slack_days * w)
+        span_after_emerg = (H - Emergence).days
+        if span_after_emerg < 20:
+            raise ValueError("Sowing→harvest window too short after emergence for realistic staging.")
 
-        # Build cumulative times (integer days from sowing)
-        d1 = int(round(durations[0]))                    # sow -> vegetative start
-        d2 = d1 + int(round(durations[1]))               # vegetative -> flowering start
-        d3 = d2 + int(round(durations[2]))               # flowering -> grainfill start
-        # We don't need the final segment to compute the three starts
+        # Vegetative start: Uniform[7,14] days after emergence
+        veg_offset = self.rng.uniform(self.veg_min_d, self.veg_max_d)
+        Veg = Emergence + pd.Timedelta(days=int(round(veg_offset)))
 
-        # Clamp to keep inside [S+1, H-1] and strictly increasing
-        d1 = max(1, min(d1, D-3))
-        d2 = max(d1+1, min(d2, D-2))
-        d3 = max(d2+1, min(d3, D-1))
+        # Start of flowering: TruncNorm(50,3) in [45,55] days after emergence
+        sof_offset = _trunc_normal(self.rng, self.sof_mean_d, self.sof_sd_d, self.sof_min_d, self.sof_max_d)
+        SOF = Emergence + pd.Timedelta(days=int(round(sof_offset)))
 
-        veg_ts  = S + pd.Timedelta(days=d1)
-        flow_ts = S + pd.Timedelta(days=d2)
-        gf_ts   = S + pd.Timedelta(days=d3)
+        # Ensure SOF is after Veg (just in case of rounding ties)
+        if SOF <= Veg:
+            SOF = Veg + pd.Timedelta(days=1)
+
+        # Grainfill start: Uniform[12,18] days after SOF
+        gf_offset = self.rng.uniform(self.gf_min_after_sof_d, self.gf_max_after_sof_d)
+        GF = SOF + pd.Timedelta(days=int(round(gf_offset)))
+
+        # Keep everything inside [Emergence+1, H-1]
+        Veg = min(max(Veg, Emergence + pd.Timedelta(days=1)), H - pd.Timedelta(days=3))
+        SOF = min(max(SOF, Veg + pd.Timedelta(days=1)), H - pd.Timedelta(days=2))
+        GF  = min(max(GF,  SOF + pd.Timedelta(days=1)), H - pd.Timedelta(days=1))
 
         return dict(
-            vegetative_start_ts=veg_ts,
-            flowering_start_ts=flow_ts,
-            grainfill_start_ts=gf_ts,
-            vegetative_start_doy=self._doy(veg_ts),
-            flowering_start_doy=self._doy(flow_ts),
-            grainfill_start_doy=self._doy(gf_ts),
-            sowing_ts=S, harvest_ts=H, sowing_doy=self._doy(S), harvest_doy=self._doy(H)
+            sowing_ts=S, harvest_ts=H, emergence_ts=Emergence,
+            vegetative_start_ts=Veg, flowering_start_ts=SOF, grainfill_start_ts=GF,
+            sowing_doy=_doy(S), harvest_doy=_doy(H), emergence_doy=_doy(Emergence),
+            vegetative_start_doy=_doy(Veg), flowering_start_doy=_doy(SOF), grainfill_start_doy=_doy(GF),
         )
 
-    def sample(self, sowing, harvest, n=1, as_dataframe=True):
-        out = [self.sample_one(sowing, harvest) for _ in range(int(n))]
+    def sample(self, sowing, harvest, n: int = 1, as_dataframe: bool = True):
+        rows = [self._sample_once(sowing, harvest) for _ in range(int(n))]
         if as_dataframe:
-            return pd.DataFrame(out)[[
-                "sowing_ts",
-                "harvest_ts",
-                "vegetative_start_ts",
-                "flowering_start_ts",
-                "grainfill_start_ts",
-                "sowing_doy",
-                "harvest_doy",
-                "vegetative_start_doy",
-                "flowering_start_doy",
-                "grainfill_start_doy"
+            return pd.DataFrame(rows)[[
+                "sowing_ts", "harvest_ts", "emergence_ts",
+                "vegetative_start_ts", "flowering_start_ts", "grainfill_start_ts",
+                "sowing_doy", "harvest_doy", "emergence_doy",
+                "vegetative_start_doy", "flowering_start_doy", "grainfill_start_doy",
             ]]
-        return out
+        return rows
 
-
+# Example:
+# sampler = CanolaStageSampler(seed=42)
+# df = sampler.sample(sowing="2025-05-01", harvest="2025-09-05", n=5)
+# print(df)
