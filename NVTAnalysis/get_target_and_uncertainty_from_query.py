@@ -1,5 +1,5 @@
 from PaddockTS.query import Query
-from NVTAnalysis.canola_stage_sampler import CanolaStageSampler
+from NVTAnalysis.canola_stage_sampler_relative import CanolaStageSampler
 from daesim2_analysis.utils import load_df_forcing
 from pandas import DataFrame
 

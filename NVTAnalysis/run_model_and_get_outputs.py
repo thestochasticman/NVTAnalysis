@@ -161,7 +161,7 @@ def run_model_and_get_outputs(Plant, ODEModelSolver, time_axis, forcing_inputs, 
         tdoy_maturity = time_axis[it_phase_transitions[ip]]
 
     except:
-        tdoy_maturity = tdoy_harvest // 2
+        tdoy_maturity = tdoy_harvest + (tdoy_harvest // 4)
 
     M_p = np.array([
         tdoy_vegetative, 
