@@ -9,6 +9,7 @@ from NVTAnalysis.get_target_and_uncertainty_from_query import get_target_and_unc
 from daesim2_analysis.run import update_and_run_model
 from daesim2_analysis.utils import load_df_forcing
 from daesim2_analysis.experiment import Experiment
+from json import dump
 from os import makedirs
 
 def plot_observed_vs_initial_vs_optimised_parameters(
@@ -120,8 +121,9 @@ def compare_pre_and_post_calibration(
     makedirs(query_results_dir, exist_ok=True)
     result = calibrate_dev(query, daesim_config, parameters)
     optimised_parameters = np.around(np.array(result.x)).astype(int)
+    dump(optimised_parameters.tolist(), open(f'{query_results_dir}/optimised_parameters.json', 'w'))
     plot_observed_vs_initial_vs_optimised_parameters(query, optimised_parameters, parameters, query_results_dir)
-
+    
     experiment = Experiment(
         crop_type='Canola',
         CLatDeg=query.lat,
@@ -141,7 +143,7 @@ def compare_pre_and_post_calibration(
     )
 
     plot_model_run(
-        [120, 500, 200, 350, 200],
+        experiment.parameters.init,
         experiment,
         plot_destination=f'{query_results_dir}/original_dev_params_run'
     )
