@@ -9,6 +9,7 @@ from NVTAnalysis.get_target_and_uncertainty_from_query import get_target_and_unc
 from daesim2_analysis.run import update_and_run_model
 from daesim2_analysis.utils import load_df_forcing
 from daesim2_analysis.experiment import Experiment
+from pandas import DataFrame
 from json import dump
 from os import makedirs
 
@@ -109,10 +110,12 @@ def plot_model_run(
     axes[0].set_xlim([experiment.PlantX.Management.sowingDays[0], model_output[d_fd_mapping['Climate_doy_f']][-1]])
     plt.tight_layout()
     fig.savefig(plot_destination)
+    return yield_from_seed_Cpool
 
 
 def compare_pre_and_post_calibration(
     query: Query,
+    experiment_df: DataFrame,
     daesim_config: DAESIMConfig = DAESIMConfig.from_json_dict('daesim_configs/DAESIM1.json'),
     parameters: Parameters = Parameters.__from_file__('parameters/PARAMS1.json'),
     results_dir = 'results'
@@ -136,15 +139,25 @@ def compare_pre_and_post_calibration(
         parameters='parameters/PARAMS2.json',
     )
 
-    plot_model_run(
+    post_opimisation_yield = plot_model_run(
         optimised_parameters,
         experiment,
         plot_destination=f'{query_results_dir}/optimised_dev_params_run'
     )
 
-    plot_model_run(
+    pre_optimisation_yield = plot_model_run(
         experiment.parameters.init,
         experiment,
         plot_destination=f'{query_results_dir}/original_dev_params_run'
     )
 
+    experiment_row = experiment_df[experiment_df['TrialCode'] == query.stub]
+    experiment_yield = experiment_row['Single Site Yield'].iloc[0]
+    
+    comparision = {
+        'pre_optimisation_error': pre_optimisation_yield  - experiment_yield,
+        'post_optimisation_error': post_opimisation_yield - experiment_yield,
+        'Trial Code': query.stub 
+    }
+
+    dump(comparision, open(f'{query_results_dir}/comparision.json'), 'w')
