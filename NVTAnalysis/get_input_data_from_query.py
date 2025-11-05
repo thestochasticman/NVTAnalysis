@@ -8,18 +8,37 @@ from daesim2_analysis.utils import load_df_forcing
 from daesim2_analysis.forcing_data import ForcingData
 from daesim.utils import ODEModelSolver
 from pandas import read_csv
+from pandas import to_datetime
 
-def get_input_data_from_query(query: Query):
+def get_input_data_from_query(query: Query, training_mode=False):
+    df = load_df_forcing(f'{query.stub_tmp_dir}/environmental/{query.stub}_DAESim_forcing.csv')
+    df = df.drop_duplicates(subset=['Date'], keep='last').sort_values('Date')
+    # print(df)
+    if not training_mode:
+        # print(df['Date'])
+        df['Date'] = to_datetime(df['Date'])
+        df = df.loc[df['Date'] <= Timestamp(query.end_time - timedelta(days=50))]
+        df = df.drop_duplicates(subset=['Date'], keep='last').sort_values('Date')
+        # print(df)
+        harvest_dates = [Timestamp(query.end_time - timedelta(days=50))]
+
+    else:
+        df = df.loc[df['Date'] <= Timestamp(query.end_time)]
+        harvest_dates = [Timestamp(df['Date'].iloc[-1])]
+    # print(df.iloc[-1]['Date'], query.end_time, query.end_time.month, query.stub)
+    # print(query.start_time, query.end_time, harvest_dates)
+    # print(df)
+    # print(query.start_time)
     SiteX = ClimateModule(CLatDeg=query.lat,CLonDeg=query.lon,timezone=10)
-
     ForcingDataX = ForcingData(
         SiteX=SiteX,
         sowing_dates=[Timestamp(query.start_time)],
-        harvest_dates=[Timestamp(query.end_time)],
-        df=load_df_forcing(f'{query.stub_tmp_dir}/environmental/{query.stub}_DAESim_forcing.csv'),
+        harvest_dates=harvest_dates,
+        df=df,
         df_type='0',
         zero_crossing_indices=[0,1]
     )
+
     ManagementX = ManagementModule(cropType="Canola", sowingDays=ForcingDataX.sowing_days, harvestDays=ForcingDataX.harvest_days, sowingYears=ForcingDataX.sowing_years, harvestYears=ForcingDataX.harvest_years)
     PlantDevX = PlantGrowthPhases(
         phases=["germination", "vegetative", "anthesis", "grainfill", "maturity"],

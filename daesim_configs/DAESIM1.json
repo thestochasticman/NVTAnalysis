@@ -49,6 +49,6 @@
         "specified_phase": "anthesis",
         "grainfill_phase": ["grainfill","maturity"],
         "GY_B": 400,
-        "GY_W_TKWseed_base": 2.5
+        "GY_W_TKWseed_base": 3.0
     }
 }

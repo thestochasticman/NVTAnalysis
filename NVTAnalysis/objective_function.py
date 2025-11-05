@@ -4,21 +4,26 @@ from functools import partial
 from PaddockTS.query import Query
 from NVTAnalysis.model_function import model_function
 from NVTAnalysis.get_target_and_uncertainty_from_query import get_target_and_uncertainity_from_query
+from NVTAnalysis.canola_stage_sampler_relative import CanolaStageSampler
 
-def calculate_error_for_one_site(query, int_params, param_info):
-    model_outputs = model_function(int_params, param_info, query)
-    observations, observations_unc_sigma, _ = get_target_and_uncertainity_from_query(query)
-    error = np.mean( ((model_outputs - observations) ** 2) / (observations_unc_sigma**2))
-    return error
-
-def objective_function(params: np.ndarray, params_info: DataFrame, queries: list[Query]):
+def objective_function(params: np.ndarray, params_info: DataFrame, queries: list[Query], priors: np.ndarray):
     int_params = np.round(params).astype(int)
     errors = []
-    calculate_error = partial(calculate_error_for_one_site, int_params=int_params, param_info=params_info)
+    sampler = CanolaStageSampler(
+        priors[0],
+        priors[1],
+        priors[2],
+        priors[3]
+    )
     for q in queries:
-        model_outputs = model_function(int_params, params_info, q)
-        observations, observations_unc_sigma, _ = get_target_and_uncertainity_from_query(q)
-        error = np.mean( ((model_outputs - observations) ** 2) / (observations_unc_sigma**2))
-        error = calculate_error_for_one_site(q, int_params, params_info)
+        model_outputs = model_function(int_params, params_info, q, training_mode=True)
+        observations, observations_unc_sigma, _ = get_target_and_uncertainity_from_query(q, sampler)
+        observations = observations[:-1]
+        model_outputs = model_outputs[:-1]
+        model_outputs[-1] = model_outputs[-1] + 7
+        observations_unc_sigma = observations_unc_sigma[:-1]
+        error = np.mean(((model_outputs - observations) ** 2))
+        # error = ((model_outputs - observations) ** 2) / (observations_unc_sigma**2)
+        # error = error[-1]
         errors += [error]
     return sum(errors)/len(errors)

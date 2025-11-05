@@ -1,0 +1,54 @@
+{
+  "plantgrowthphases.PlantGrowthPhases": {
+    "phases": ["germination", "vegetative", "anthesis", "grainfill", "maturity"],
+    "gdd_requirements": [100, 800, 100, 300, 100],
+    "vd_requirements": [0, 25, 0, 0, 0],
+    "allocation_coeffs": [
+      [0.25, 0.10, 0.65, 0.00, 0.00],
+      [0.55, 0.10, 0.35, 0.00, 0.00],
+      [0.20, 0.35, 0.25, 0.20, 0.00],
+      [0.05, 0.05, 0.05, 0.85, 0.00],
+      [0.00, 0.05, 0.00, 0.95, 0.00]
+    ],
+    "turnover_rates": [
+      [0.0005, 0.0005, 0.0005, 0.0, 0.0],
+      [0.0050, 0.0010, 0.0050, 0.0, 0.0],
+      [0.0100, 0.0010, 0.0200, 0.0, 0.0],
+      [0.0500, 0.0040, 0.0500, 0.0, 0.0],
+      [0.50, 0.017, 0.50, 0.0, 0.0]
+    ]
+  },
+  "canopylayers.CanopyLayers": {
+    "nlevmlcan": 3
+  },
+  "leafgasexchange2.LeafGasExchangeModule2": {
+    "Vcmax_opt": 0.00009,
+    "Jmax_opt_rVcmax": 1.6,
+    "Jmax_opt_rVcmax_method": "log",
+    "VPDmin": 0.1
+  },
+  "soillayers.SoilLayers": {
+    "z_max": 2.5
+  },
+  "plantcarbonwater.PlantCH2O": {
+    "maxLAI": 7.5,
+    "ksr_coeff": 6000,
+    "SLA": 0.035
+  },
+  "plant_1000.PlantModuleCalculator": {
+    "alpha_Rg": 0.35,
+    "GDD_method": "linear1",
+    "GDD_Tbase": 0.0,
+    "GDD_Tupp": 30.0,
+    "hc_max_GDDindex": 0.7,
+    "d_r_max": 2.5,
+    "CI": 1.0,
+    "Vmaxremob": 1.6,
+    "Kmremob": 0.6,
+    "remob_phase": ["grainfill", "maturity"],
+    "specified_phase": "anthesis",
+    "grainfill_phase": ["grainfill", "maturity"],
+    "GY_B": 450,
+    "GY_W_TKWseed_base": 6.0
+  }
+}

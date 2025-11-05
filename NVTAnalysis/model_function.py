@@ -5,8 +5,8 @@ from NVTAnalysis.get_input_data_from_query import get_input_data_from_query
 from daesim2_analysis.run import update_attribute, update_attribute_in_phase
 from NVTAnalysis.run_model_and_get_outputs import run_model_and_get_outputs
 
-def model_function(params: np.ndarray, params_info: DataFrame, query: Query):
-    input_data = get_input_data_from_query(query)
+def model_function(params: np.ndarray, params_info: DataFrame, query: Query, training_mode: bool = False):
+    input_data = get_input_data_from_query(query, training_mode)
     ODEModelSolver, model_instance, time_axis, forcing_inputs, reset_days, zero_crossing_indices, time_nday_f, time_doy_f, time_year_f = input_data
     for idx, value in enumerate(params):
         param_name = params_info["Name"].values[idx]

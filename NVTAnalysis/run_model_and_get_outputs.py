@@ -156,18 +156,468 @@ def run_model_and_get_outputs(Plant, ODEModelSolver, time_axis, forcing_inputs, 
     # np.where(diagnostics['idevphase'][it_phase_transitions] == Plant.PlantDev.phases.index('grainfill'))
   
     # print(np.where(diagnostics['idevphase'][it_phase_transitions] == Plant.PlantDev.phases.index('maturity')))
-    try:
-        ip = np.where(diagnostics['idevphase'][it_phase_transitions] == Plant.PlantDev.phases.index('maturity'))[0][0]
-        tdoy_maturity = time_axis[it_phase_transitions[ip]]
+    # try:
+    #     ip = np.where(diagnostics['idevphase'][it_phase_transitions] == Plant.PlantDev.phases.index('maturity'))[0][0]
+    #     tdoy_maturity = time_axis[it_phase_transitions[ip]]
 
-    except:
-        tdoy_maturity = tdoy_harvest + (tdoy_harvest // 4)
+    # except:
+    #     tdoy_maturity = tdoy_harvest + (tdoy_harvest // 4)
+
+    ip = np.where(diagnostics['idevphase'][it_phase_transitions] == Plant.PlantDev.phases.index('maturity'))[0][0]
+    tdoy_maturity = time_axis[it_phase_transitions[ip]]
 
     M_p = np.array([
         tdoy_vegetative, 
         tdoy_anth0, 
-        tdoy_anth1,
+        tdoy_anth1, 
         tdoy_maturity,
         tdoy_harvest,
     ])
     return M_p
+
+
+# import numpy as np
+
+# def run_model_and_get_outputs(Plant, ODEModelSolver, time_axis, forcing_inputs, reset_days, zero_crossing_indices):
+#     """
+#     Runs the plant ODE model and returns key phenology days:
+#       [vegetative_start, anthesis_start, grainfill_start, maturity, harvest]
+
+#     Maturity detection priority:
+#       1) Seed/Grain mass plateau (increment stays small for a sustained window)
+#       2) Last timestamp where idevphase == 'maturity'
+#       3) Harvest day
+#     """
+
+#     # ----------------------- Config for yield-based maturity -----------------------
+#     _MAT_WINDOW = 3        # steps (e.g., days) to average increment
+#     _MAT_ABS_TOL = 0.02    # absolute increment tol per step (units of seed mass per step)
+#     _MAT_REL_TOL = 0.002   # relative increment tol per step (fraction per step, e.g. 0.2%)
+#     _MAT_CONSEC   = 5      # require this many consecutive steps under both tolerances
+
+#     # Candidate diagnostic keys for seed/grain mass (first found will be used)
+#     _SEED_KEYS = ("seed_mass", "yield", "grain_mass", "grainDM", "seedDM", "grain_weight", "seed_weight")
+
+#     # ----------------------- Helper: yield-based maturity detector -----------------
+#     def _detect_maturity_by_seed_mass(
+#         seed_mass: np.ndarray,
+#         it_start: int,
+#         it_end: int,
+#         window: int = _MAT_WINDOW,
+#         abs_tol: float = _MAT_ABS_TOL,
+#         rel_tol: float = _MAT_REL_TOL,
+#         consecutive: int = _MAT_CONSEC,
+#     ) -> int | None:
+#         """Return index (in time_axis) of first sustained low-growth point, else None."""
+#         if seed_mass is None or it_end <= it_start + window:
+#             return None
+
+#         y = np.asarray(seed_mass, dtype=float)
+#         if y.size == 0 or np.all(~np.isfinite(y[it_start:it_end+1])):
+#             return None
+
+#         # Light interpolation to bridge tiny NaN gaps (conservative)
+#         isn = ~np.isfinite(y)
+#         if np.any(isn) and np.any(~isn):
+#             y[isn] = np.interp(np.flatnonzero(isn), np.flatnonzero(~isn), y[~isn])
+
+#         # Moving average increment over a backward window
+#         delta = np.full_like(y, np.nan, dtype=float)
+#         t0 = it_start + window
+#         for t in range(t0, it_end + 1):
+#             delta[t] = (y[t] - y[t - window]) / window
+
+#         eps = 1e-9
+#         rel = np.abs(delta) / (np.abs(y) + eps)
+#         small = (np.abs(delta) <= abs_tol) & (rel <= rel_tol)
+
+#         run = 0
+#         for t in range(t0, it_end + 1):
+#             if small[t]:
+#                 run += 1
+#                 if run >= consecutive:
+#                     return t - consecutive + 1
+#             else:
+#                 run = 0
+#         return None
+
+#     # ----------------------- Run model -----------------------
+#     PlantCalc = Plant.calculate
+#     Model = ODEModelSolver(calculator=PlantCalc, states_init=[0.0, 0.0], time_start=time_axis[0], log_diagnostics=True)
+
+#     res = Model.run(
+#         time_axis=time_axis,
+#         forcing_inputs=forcing_inputs,
+#         solver="euler",
+#         zero_crossing_indices=zero_crossing_indices,
+#         reset_days=reset_days,
+#     )
+
+#     # Diagnostics to ndarray
+#     _diagnostics = dict(Model.diagnostics)
+#     diagnostics = {key: np.array(value) for key, value in _diagnostics.items()}
+
+#     # Numeric copy of idevphase with None -> NaN
+#     diagnostics['idevphase_numeric'] = np.array(diagnostics['idevphase'], dtype=np.float64)
+#     diagnostics["idevphase_numeric"][diagnostics["idevphase"] == None] = np.nan  # noqa: E711
+
+#     # Extend diagnostics arrays with a terminal np.nan (or last time for 't')
+#     for key in diagnostics:
+#         if key == "t":
+#             diagnostics[key] = np.append(diagnostics[key], res["t"][-1])
+#         else:
+#             diagnostics[key] = np.append(diagnostics[key], np.nan)
+
+#     # Add state variables
+#     diagnostics["GDD"] = res["y"][0, :]
+#     diagnostics["VD"]  = res["y"][1, :]
+
+#     # Add forcing inputs (handles scalar and layered)
+#     for i, f in enumerate(forcing_inputs):
+#         ni = i + 1
+#         sample = f(time_axis[0])
+#         if np.size(sample) == 1:
+#             fstr = f"forcing {ni:02}"
+#             diagnostics[fstr] = f(time_axis)
+#         elif np.size(sample) > 1:
+#             nz = np.size(sample)
+#             vals = f(time_axis)
+#             for iz in range(nz):
+#                 fstr = f"forcing {ni:02} z{iz}"
+#                 diagnostics[fstr] = vals[:, iz]
+
+#     # ----------------------- Sowing/Harvest window -----------------------
+#     ngrowing_seasons = (len(Plant.Management.sowingDays) if (isinstance(Plant.Management.sowingDays, int) == False) else 1)
+#     if ngrowing_seasons > 1:
+#         it_sowing = np.where(time_axis == reset_days[0])[0][0]
+#         if Plant.Management.harvestDays is not None:
+#             it_harvest = np.where(time_axis == reset_days[1])[0][0]
+#         else:
+#             it_harvest = -1
+#     else:
+#         it_sowing = np.where(time_axis == reset_days[0])[0][0]
+#         if Plant.Management.harvestDays is not None:
+#             it_harvest = np.where(time_axis == reset_days[1])[0][0]
+#         else:
+#             it_harvest = -1
+
+#     # ----------------------- Phase transitions from idevphase -----------------------
+#     idevphase = diagnostics["idevphase_numeric"]
+#     valid_mask = ~np.isnan(idevphase)
+#     it_phase_transitions = np.where(
+#         (~valid_mask[:-1] &  valid_mask[1:]) |  # NaN -> number
+#         ( valid_mask[:-1] & ~valid_mask[1:]) |  # number -> NaN
+#         ( valid_mask[:-1] &  valid_mask[1:] & (np.diff(idevphase) != 0))  # change
+#     )[0] + 1
+
+#     # limit to (sowing+1) ... maturity/harvest (maturity index filled later if needed)
+#     it_phase_transitions = [t for t in it_phase_transitions if t > int(it_sowing + 1)]
+#     # temp cap by harvest for now; will also cap by maturity once we have it
+#     it_phase_transitions = [t for t in it_phase_transitions if t <= it_harvest]
+
+#     # Phase indices
+#     igermination = Plant.PlantDev.phases.index("germination")
+#     ivegetative  = Plant.PlantDev.phases.index("vegetative")
+#     ianthesis    = Plant.PlantDev.phases.index("anthesis")
+#     igrainfill   = Plant.PlantDev.phases.index("grainfill")
+#     imaturity    = Plant.PlantDev.phases.index("maturity")
+
+#     # Useful phase start helper
+#     def _phase_start_idx(phase_idx: int) -> int | None:
+#         hits = np.where(idevphase == phase_idx)[0]
+#         return int(hits[0]) if hits.size else None
+
+#     it_grainfill_start = _phase_start_idx(igrainfill)
+#     it_anthesis_start  = _phase_start_idx(ianthesis)
+
+#     # Key phenology from transitions (with fallbacks)
+#     ip = np.where(diagnostics['idevphase'][it_phase_transitions] == ivegetative)[0][0]
+#     tdoy_vegetative = time_axis[it_phase_transitions[ip]]
+
+#     if ianthesis in idevphase[it_sowing+1:it_harvest+1]:
+#         ip = np.where(diagnostics['idevphase'][it_phase_transitions] == ianthesis)[0][0]
+#         tdoy_anth0 = time_axis[it_phase_transitions[ip]]
+#     else:
+#         tdoy_anth0 = time_axis[it_harvest]
+
+#     if igrainfill in idevphase[it_sowing+1:it_harvest+1]:
+#         ip = np.where(diagnostics['idevphase'][it_phase_transitions] == igrainfill)[0][0]
+#         tdoy_anth1 = time_axis[it_phase_transitions[ip]]
+#     else:
+#         tdoy_anth1 = time_axis[it_harvest]
+
+#     tdoy_harvest = time_axis[it_harvest]
+
+#     # ----------------------- Maturity detection -----------------------
+#     # 1) yield/seed-mass–based maturity
+#     seed_key = next((k for k in _SEED_KEYS if k in diagnostics), None)
+#     it_search_start = (
+#         it_grainfill_start if it_grainfill_start is not None else
+#         it_anthesis_start  if it_anthesis_start  is not None else
+#         int(it_sowing + 1)
+#     )
+#     it_search_end = int(it_harvest)
+
+#     it_mature_yield = None
+#     if seed_key is not None:
+#         it_mature_yield = _detect_maturity_by_seed_mass(
+#             diagnostics[seed_key],
+#             it_search_start,
+#             it_search_end,
+#         )
+
+#     # 2) phase-based maturity (fallback)
+#     it_mature_phase = None
+#     if imaturity in idevphase:
+#         it_mature_phase = np.where(idevphase == imaturity)[0][-1]
+
+#     # 3) final choice
+#     if it_mature_yield is not None:
+#         it_mature_final = it_mature_yield
+#     elif it_mature_phase is not None:
+#         it_mature_final = it_mature_phase
+#     else:
+#         it_mature_final = it_harvest
+
+#     tdoy_maturity = time_axis[it_mature_final]
+
+#     # ----------------------- Return vector -----------------------
+#     M_p = np.array([
+#         tdoy_vegetative,
+#         tdoy_anth0,
+#         tdoy_anth1,
+#         tdoy_maturity,
+#         tdoy_harvest,
+#     ])
+#     return M_p
+
+
+# # import numpy as np
+
+# # def run_model_and_get_outputs(Plant, ODEModelSolver, time_axis, forcing_inputs, reset_days, zero_crossing_indices):
+# #     """
+# #     Returns [vegetative_start, anthesis_start, grainfill_start, maturity, harvest]
+# #     Maturity detection (in order of preference):
+# #       A) First time running-max(seed_mass) >= 99.9% of final (harvest) yield, AFTER min grainfill days
+# #       B) First time weekly Δ running-max(seed_mass) <= 0.005% of final yield (optionally sustained)
+# #       C) First time running-max(seed_mass) >= 99.0% of final yield
+# #       D) Fallback: harvest
+# #     Also records a small diagnostic dict at diagnostics["maturity_meta"].
+# #     """
+
+# #     # ----------------------- Tunables -----------------------
+# #     FRACTION_OF_FINAL_PRIMARY = 0.999   # 99.9%
+# #     FRACTION_OF_FINAL_SECOND  = 0.990   # 99.0% fallback for non-stagnators
+# #     WEEK_DAYS                 = 7.0
+# #     WEEKLY_FRAC_THRESH        = 0.00005 # 0.005% of final yield per ~week
+# #     CONSEC_WEEK_WINDOWS       = 1       # set to 2-3 for more robustness
+# #     MIN_GRAINFILL_DAYS        = 5       # don't declare maturity too soon after grainfill
+
+# #     SEED_KEYS = (
+# #         "seed_mass", "yield", "grain_mass", "grainDM", "seedDM", "grain_weight", "seed_weight"
+# #     )
+
+# #     # ----------------------- Helpers -----------------------
+# #     def _interp_fill(a):
+# #         a = np.asarray(a, dtype=float).copy()
+# #         isn = ~np.isfinite(a)
+# #         if np.any(isn) and np.any(~isn):
+# #             a[isn] = np.interp(np.flatnonzero(isn), np.flatnonzero(~isn), a[~isn])
+# #         return a
+
+# #     def _infer_dt_days(tx: np.ndarray) -> float | None:
+# #         dtx = np.diff(np.asarray(tx, dtype=float))
+# #         dtx = dtx[dtx > 0]
+# #         if dtx.size == 0: return None
+# #         dt = float(np.median(dtx))
+# #         return dt if np.isfinite(dt) and dt > 0 else None
+
+# #     # ----------------------- Run model -----------------------
+# #     PlantCalc = Plant.calculate
+# #     Model = ODEModelSolver(calculator=PlantCalc, states_init=[0.0, 0.0], time_start=time_axis[0], log_diagnostics=True)
+
+# #     res = Model.run(
+# #         time_axis=time_axis,
+# #         forcing_inputs=forcing_inputs,
+# #         solver="euler",
+# #         zero_crossing_indices=zero_crossing_indices,
+# #         reset_days=reset_days,
+# #     )
+
+# #     _diagnostics = dict(Model.diagnostics)
+# #     diagnostics = {k: np.array(v) for k, v in _diagnostics.items()}
+
+# #     diagnostics['idevphase_numeric'] = np.array(diagnostics['idevphase'], dtype=np.float64)
+# #     diagnostics["idevphase_numeric"][diagnostics["idevphase"] == None] = np.nan  # noqa: E711
+
+# #     for key in diagnostics:
+# #         if key == "t":
+# #             diagnostics[key] = np.append(diagnostics[key], res["t"][-1])
+# #         else:
+# #             diagnostics[key] = np.append(diagnostics[key], np.nan)
+
+# #     diagnostics["GDD"] = res["y"][0, :]
+# #     diagnostics["VD"]  = res["y"][1, :]
+
+# #     for i, f in enumerate(forcing_inputs):
+# #         ni = i + 1
+# #         sample = f(time_axis[0])
+# #         if np.size(sample) == 1:
+# #             diagnostics[f"forcing {ni:02}"] = f(time_axis)
+# #         elif np.size(sample) > 1:
+# #             vals = f(time_axis)
+# #             for iz in range(np.size(sample)):
+# #                 diagnostics[f"forcing {ni:02} z{iz}"] = vals[:, iz]
+
+# #     # ----------------------- Sowing/Harvest -----------------------
+# #     ngrowing_seasons = (len(Plant.Management.sowingDays) if (isinstance(Plant.Management.sowingDays, int) == False) else 1)
+# #     if ngrowing_seasons > 1:
+# #         it_sowing = np.where(time_axis == reset_days[0])[0][0]
+# #         it_harvest = np.where(time_axis == reset_days[1])[0][0] if Plant.Management.harvestDays is not None else -1
+# #     else:
+# #         it_sowing = np.where(time_axis == reset_days[0])[0][0]
+# #         it_harvest = np.where(time_axis == reset_days[1])[0][0] if Plant.Management.harvestDays is not None else -1
+
+# #     idevphase = diagnostics["idevphase_numeric"]
+# #     valid_mask = ~np.isnan(idevphase)
+# #     it_phase_transitions = np.where(
+# #         (~valid_mask[:-1] &  valid_mask[1:]) |
+# #         ( valid_mask[:-1] & ~valid_mask[1:]) |
+# #         ( valid_mask[:-1] &  valid_mask[1:] & (np.diff(idevphase) != 0))
+# #     )[0] + 1
+# #     it_phase_transitions = [t for t in it_phase_transitions if t > int(it_sowing + 1)]
+# #     it_phase_transitions = [t for t in it_phase_transitions if t <= it_harvest]
+
+# #     ivegetative = Plant.PlantDev.phases.index("vegetative")
+# #     ianthesis   = Plant.PlantDev.phases.index("anthesis")
+# #     igrainfill  = Plant.PlantDev.phases.index("grainfill")
+# #     imaturity   = Plant.PlantDev.phases.index("maturity")
+
+# #     def _phase_start_idx(phase_idx: int) -> int | None:
+# #         hits = np.where(idevphase == phase_idx)[0]
+# #         return int(hits[0]) if hits.size else None
+
+# #     it_grainfill_start = _phase_start_idx(igrainfill)
+# #     it_anthesis_start  = _phase_start_idx(ianthesis)
+
+# #     ip = np.where(diagnostics['idevphase'][it_phase_transitions] == ivegetative)[0][0]
+# #     tdoy_vegetative = time_axis[it_phase_transitions[ip]]
+
+# #     if ianthesis in idevphase[it_sowing+1:it_harvest+1]:
+# #         ip = np.where(diagnostics['idevphase'][it_phase_transitions] == ianthesis)[0][0]
+# #         tdoy_anth0 = time_axis[it_phase_transitions[ip]]
+# #     else:
+# #         tdoy_anth0 = time_axis[it_harvest]
+
+# #     if igrainfill in idevphase[it_sowing+1:it_harvest+1]:
+# #         ip = np.where(diagnostics['idevphase'][it_phase_transitions] == igrainfill)[0][0]
+# #         tdoy_anth1 = time_axis[it_phase_transitions[ip]]
+# #     else:
+# #         tdoy_anth1 = time_axis[it_harvest]
+
+# #     tdoy_harvest = time_axis[it_harvest]
+
+# #     # ----------------------- Maturity (robust) -----------------------
+# #     meta = {"rule": None, "it": None, "notes": ""}
+
+# #     seed_key = next((k for k in SEED_KEYS if k in diagnostics), None)
+# #     dt_days = _infer_dt_days(time_axis)
+
+# #     # Search window: from grainfill (prefer) or anthesis, else sowing+1
+# #     it_search_start = (
+# #         it_grainfill_start if it_grainfill_start is not None else
+# #         it_anthesis_start  if it_anthesis_start  is not None else
+# #         int(it_sowing + 1)
+# #     )
+# #     it_search_end = int(it_harvest)
+
+# #     # Minimum time after grainfill before maturity can trigger
+# #     if dt_days is not None and it_grainfill_start is not None:
+# #         min_gf_steps = max(0, int(np.ceil(MIN_GRAINFILL_DAYS / dt_days)))
+# #     else:
+# #         min_gf_steps = 0
+
+# #     # Phase-based fallback (still useful for metadata)
+# #     it_mature_phase = None
+# #     if imaturity in idevphase:
+# #         it_mature_phase = np.where(idevphase == imaturity)[0][-1]
+
+# #     it_mature_final = it_harvest  # default
+
+# #     if seed_key is not None and dt_days is not None:
+# #         y = _interp_fill(diagnostics[seed_key])
+
+# #         # Make series non-decreasing to avoid wiggles: use running max
+# #         runmax = np.maximum.accumulate(y)
+
+# #         # Final yield at harvest; if bad, use window max
+# #         y_final = runmax[it_harvest] if np.isfinite(runmax[it_harvest]) else np.nan
+# #         if not np.isfinite(y_final) or y_final <= 0:
+# #             y_final = np.nanmax(runmax[it_search_start:it_search_end+1])
+
+# #         # Primary: 99.9% of final, with min grainfill time
+# #         if np.isfinite(y_final) and y_final > 0:
+# #             target_A = FRACTION_OF_FINAL_PRIMARY * y_final
+# #             sA = max(it_search_start, (it_grainfill_start or it_search_start) + min_gf_steps)
+# #             hits_A = np.where(runmax[sA:it_search_end+1] >= target_A)[0]
+# #             if hits_A.size:
+# #                 itA = sA + int(hits_A[0])
+# #                 it_mature_final = itA
+# #                 meta.update({"rule": "A_99.9pct_final", "it": int(itA)})
+
+# #             else:
+# #                 # Secondary: weekly Δ ≤ 0.005% of final (sustained)
+# #                 k = max(1, int(round(WEEK_DAYS / dt_days)))
+# #                 abs_week_thresh = WEEKLY_FRAC_THRESH * y_final
+# #                 run = 0
+# #                 itB = None
+# #                 for t in range(max(it_search_start + k, (it_grainfill_start or it_search_start) + min_gf_steps), it_search_end + 1):
+# #                     dy = runmax[t] - runmax[t - k]
+# #                     if np.isfinite(dy) and dy <= abs_week_thresh:
+# #                         run += 1
+# #                         if run >= CONSEC_WEEK_WINDOWS:
+# #                             itB = t - (CONSEC_WEEK_WINDOWS - 1)
+# #                             break
+# #                     else:
+# #                         run = 0
+# #                 if itB is not None:
+# #                     it_mature_final = itB
+# #                     meta.update({"rule": "B_weekly_delta", "it": int(itB), "notes": f"k={k}, thr={abs_week_thresh:.3g}"})
+# #                 else:
+# #                     # Tertiary: 99.0% of final (for strong non-stagnators)
+# #                     target_C = FRACTION_OF_FINAL_SECOND * y_final
+# #                     sC = max(it_search_start, (it_grainfill_start or it_search_start) + min_gf_steps)
+# #                     hits_C = np.where(runmax[sC:it_search_end+1] >= target_C)[0]
+# #                     if hits_C.size:
+# #                         itC = sC + int(hits_C[0])
+# #                         it_mature_final = itC
+# #                         meta.update({"rule": "C_99.0pct_final", "it": int(itC)})
+# #                     else:
+# #                         # Final fallback: harvest (or phase if you prefer)
+# #                         if it_mature_phase is not None:
+# #                             it_mature_final = it_mature_phase
+# #                             meta.update({"rule": "D_phase_fallback", "it": int(it_mature_phase)})
+# #                         else:
+# #                             it_mature_final = it_harvest
+# #                             meta.update({"rule": "E_harvest_fallback", "it": int(it_harvest)})
+# #     else:
+# #         # No seed_mass series or no dt; use phase/harvest
+# #         if it_mature_phase is not None:
+# #             it_mature_final = it_mature_phase
+# #             meta.update({"rule": "D_phase_fallback", "it": int(it_mature_phase)})
+# #         else:
+# #             it_mature_final = it_harvest
+# #             meta.update({"rule": "E_harvest_fallback", "it": int(it_harvest)})
+
+# #     tdoy_maturity = time_axis[it_mature_final]
+# #     diagnostics["maturity_meta"] = meta  # small breadcrumb for auditing
+
+# #     # ----------------------- Return -----------------------
+# #     M_p = np.array([
+# #         tdoy_vegetative,
+# #         tdoy_anth0,
+# #         tdoy_anth1,
+# #         tdoy_maturity,
+# #         tdoy_harvest,
+# #     ])
+# #     return M_p

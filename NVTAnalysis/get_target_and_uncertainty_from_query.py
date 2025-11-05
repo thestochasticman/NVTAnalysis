@@ -1,9 +1,11 @@
+import numpy as np
 from PaddockTS.query import Query
 from NVTAnalysis.canola_stage_sampler_relative import CanolaStageSampler
 from daesim2_analysis.utils import load_df_forcing
 from pandas import DataFrame
+from datetime import timedelta
 
-def get_target_and_uncertainity_from_query(query: Query, sampler: CanolaStageSampler=CanolaStageSampler()):
+def get_target_and_uncertainity_from_query(query: Query, sampler: CanolaStageSampler):
     observables_names = [
         "start of vegetative",
         "start of flowering",
@@ -21,7 +23,7 @@ def get_target_and_uncertainity_from_query(query: Query, sampler: CanolaStageSam
     sampler = CanolaStageSampler(seed=123)
     # sampler2 = CanolaWeatherAwareStages(seed=123)
     df=load_df_forcing(f'{query.stub_tmp_dir}/environmental/{query.stub}_DAESim_forcing.csv')
-    synthetic_observables_df = sampler.sample(str(query.start_time), str(query.end_time), n=100)
+    synthetic_observables_df = sampler.sample(str(query.start_time), str(query.end_time - timedelta(days=50)), n=100)
     # synthetic_observables_df = sampler2.extract(df, str(query.start_time), str(query.end_time), n=5)
     observables_values = synthetic_observables_df[
         [

@@ -3,8 +3,10 @@ from PaddockTS.query import Query
 from pandas import read_csv
 from os.path import exists
 from datetime import date
+from datetime import timedelta
+from os import remove
 
-def get_n_representative_sites(tmp_dir: str, out_dir: str):
+def get_n_representative_sites(tmp_dir: str, out_dir: str, reload=False):
     queries = []
     df_Hyola_Blazer_TT = read_csv('data/selected_10_Hyola_Blazer_TT.csv')
     for idx, row in df_Hyola_Blazer_TT.iterrows():
@@ -26,13 +28,15 @@ def get_n_representative_sites(tmp_dir: str, out_dir: str):
                 'nbart_swir_3'
             ],
             start_time=date.fromisoformat(row['SowingDate']),
-            end_time=date.fromisoformat(row['HarvestDate']),
+            end_time=date.fromisoformat(row['HarvestDate']) + timedelta(days=50),
             out_dir=out_dir,
             tmp_dir=tmp_dir,
             stub=row['TrialCode']
         )
         queries += [query]
-        if not exists(f'{query.stub_tmp_dir}/environmental/{query.stub}_DAESim_forcing.csv'):
+        if not exists(f'{query.stub_tmp_dir}/environmental/{query.stub}_DAESim_forcing.csv') or reload:
+            if exists(f'{query.stub_tmp_dir}/environmental/{query.stub}_DAESim_forcing.csv'):
+                remove(f'{query.stub_tmp_dir}/environmental/{query.stub}_DAESim_forcing.csv')
             download_environmental_data(query)
 
         df = read_csv(f'{query.stub_tmp_dir}/environmental/{query.stub}_DAESim_forcing.csv')
@@ -41,3 +45,10 @@ def get_n_representative_sites(tmp_dir: str, out_dir: str):
             df = df.rename(columns={'date': 'Date'})
             df.to_csv(f'{query.stub_tmp_dir}/environmental/{query.stub}_DAESim_forcing.csv', index='Date')
     return df_Hyola_Blazer_TT, queries
+
+def test():
+    data_dir = '/borevitz_projects/data'
+    get_n_representative_sites(data_dir, data_dir, reload=True)
+
+if __name__ == '__main__':
+    test()
