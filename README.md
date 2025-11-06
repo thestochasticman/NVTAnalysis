@@ -2,7 +2,7 @@
 
 Currently, this package uses experimental data of sowing date, harvest date, yield and the environmental data to calibrate the developmental module of DAESIM.
 
-## DAESIM Development Module
+## DAESIM Developmental(Growth Stages) Module
 
 This module is responsible for transition of a crop from one developmental stage to the next.
 
@@ -131,7 +131,7 @@ maturity_start_doy                    359
 So we are going to try and make sure our model's growth change indices look
 as close to the the samplers.
 
-## Objective Function
+### Objective Function
 
 This is the function we are going to try and minimise
 
@@ -168,7 +168,7 @@ def objective_function(params: np.ndarray, params_info: DataFrame, queries: list
 In short, it takes the DAESIM parameters, the input query and the priors to create
 the target and to generate the model outputs and then we do a simple mean square loss.
 
-## Differential Evolution
+### Differential Evolution
 
 ```py
 import numpy as np
@@ -203,5 +203,38 @@ def calibrate_dev(
     return result
 ```
 
+This is the algorithm used to explore the parameter space.
+
+An example of model's output of phase transition before and after calibration.
+
+![](./images/example_dev_phases.png)
+
+There is also an overall decrease in the error of the model's yield and the experiment yield. We have tried to minimise the yield error yet but there is already
+improvement across all sites.
+
+The x axis is the experiment code and the y axis is the error in tons per hectare.
+
+![](./plots/errors_grouped_bar.png)
 
 
+The high rainfall and high yield sites still have a lot of error. And the routine actually helps figure out why
+
+### Example RUN before calibration
+
+![](./results/CHTA21MINI3/original_dev_params_run.png)
+
+The phase transition and the carbon allocation are actually out of sync. Which
+is why we see the plant grow long after maturity.
+
+### After Calibration
+
+![](./results/CHTA21MINI3/optimised_dev_params_run.png)
+
+The model actually matures much later and no further carbon allocation happening
+after the maturity. The grainfill period is also placed much more sensibly.
+
+
+### Insight
+
+Later the maturity, more time the model has to actually grow. For high yield experiments, we need to flower as soon as possible and mature early. And we need to
+get that without explictly coding but with the interaction of the crop and the environment variables.
