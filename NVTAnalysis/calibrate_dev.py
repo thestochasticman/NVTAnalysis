@@ -21,8 +21,8 @@ def calibrate_dev(
         bounds = param_bounds,
         args=(parameters.df, [query], priors),
         popsize=5,
-        tol=tol,
-        maxiter=100,
+        tol=0.01,
+        maxiter=500,
         workers=-1,
         seed=123
     )

@@ -19,8 +19,10 @@ def objective_function(params: np.ndarray, params_info: DataFrame, queries: list
         model_outputs = model_function(int_params, params_info, q, training_mode=True)
         observations, observations_unc_sigma, _ = get_target_and_uncertainity_from_query(q, sampler)
         observations = observations[:-1]
+
         model_outputs = model_outputs[:-1]
-        model_outputs[-1] = model_outputs[-1] + 7
+        model_outputs[-1] = model_outputs[-1]
+        observations[-1] = observations[-1]
         observations_unc_sigma = observations_unc_sigma[:-1]
         error = np.mean(((model_outputs - observations) ** 2))
         # error = ((model_outputs - observations) ** 2) / (observations_unc_sigma**2)

@@ -195,8 +195,6 @@ def plot_model_run(
 
     model_output = update_and_run_model(
         dev_params,
-        # [120, 500, 200, 350, 200],
-        # [205, 492, 298, 135, 393],
         experiment.PlantX,
         experiment.input_data,
         parameters.df,
@@ -426,6 +424,7 @@ def test():
     # priors = np.array([0.03422608, 0.41178264, 0.27057179, 0.28341949])
     priors = np.array([0.06437209, 0.54745734, 0.10846586, 0.27970471])
     priors = np.array([0.05, 0.50, 0.20, 0.20])
+    priors = np.array([0.08439008, 0.47900279, 0.2547921, 0.13181503])
     # print([priors])
     for query in queries:
         compare_pre_and_post_calibration(priors, query, experiment_df)
