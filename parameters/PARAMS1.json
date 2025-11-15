@@ -5,7 +5,7 @@
     "Unit": ["deg C d", "deg C d", "deg C d", "deg C d", "deg C d"],
     "Initial Value": [120, 500, 200, 350, 200],
     "Min": [80, 300, 100, 100, 100],
-    "Max": [250, 350, 500, 500, 500],
+    "Max": [250, 600, 600, 1000, 300],
     "Phase Specific": [true, true, true, true, true],
     "Phase": ["germination","vegetative", "anthesis", "grainfill", "maturity"]
 }

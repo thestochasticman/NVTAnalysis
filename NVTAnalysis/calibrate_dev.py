@@ -12,7 +12,6 @@ def calibrate_dev(
     daesim_config: DAESIMConfig=DAESIMConfig.from_json_dict('daesim_configs/DAESIM1.json'),
     parameters: Parameters=Parameters.__from_file__('parameters/PARAMS1.json'),
 ):
-    priors = (priors / priors.sum()) * 0.95
     params_info = parameters.df
     params = parameters.df['Initial Value'].values
     param_bounds =  list(zip(parameters.df["Min"].values, parameters.df["Max"].values))

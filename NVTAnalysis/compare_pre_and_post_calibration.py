@@ -341,7 +341,7 @@ def compare_pre_and_post_calibration(
     results_dir = 'results',
     prior_optimisation_mode = False
 ):  
-    priors = (priors / priors.sum()) * 0.95
+    # priors = (priors / priors.sum()) * 0.95
     query_results_dir = f'{results_dir}/{query.stub}'
     makedirs(query_results_dir, exist_ok=True)
     if not prior_optimisation_mode:
@@ -423,8 +423,11 @@ def test():
     # priors = np.array([0.06278367, 0.52598781, 0.2698857, 0.14134282])
     # priors = np.array([0.03422608, 0.41178264, 0.27057179, 0.28341949])
     priors = np.array([0.06437209, 0.54745734, 0.10846586, 0.27970471])
-    priors = np.array([0.05, 0.50, 0.20, 0.20])
-    priors = np.array([0.08439008, 0.47900279, 0.2547921, 0.13181503])
+    priors = np.array([0.05, 0.40, 0.10, 0.40])
+    # priors = np.array([0.05, 0.38, 0.07, 0.45])
+    # priors = np.array([0.05, 0.50, 0.20, 0.20])
+    # priors = np.array([0.05, 0.36, 0.04, 0.50])
+    priors = np.array([10/109, 48/109, 18/109, 23/109])
     # print([priors])
     for query in queries:
         compare_pre_and_post_calibration(priors, query, experiment_df)

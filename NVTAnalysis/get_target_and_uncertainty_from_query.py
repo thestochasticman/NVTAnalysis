@@ -20,7 +20,6 @@ def get_target_and_uncertainity_from_query(query: Query, sampler: CanolaStageSam
         "ordinal day of year",
         "ordinal day of year"
     ]
-    sampler = CanolaStageSampler(seed=123)
     # sampler2 = CanolaWeatherAwareStages(seed=123)
     df=load_df_forcing(f'{query.stub_tmp_dir}/environmental/{query.stub}_DAESim_forcing.csv')
     synthetic_observables_df = sampler.sample(str(query.start_time), str(query.end_time - timedelta(days=50)), n=100)

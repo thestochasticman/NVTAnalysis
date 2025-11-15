@@ -117,6 +117,8 @@ def run_model_and_get_outputs(Plant, ODEModelSolver, time_axis, forcing_inputs, 
     if imaturity in diagnostics['idevphase_numeric'][itax_sowing+1:itax_harvest+1]:
         ip = np.where(diagnostics['idevphase'][itax_phase_transitions] == Plant.PlantDev.phases.index('maturity'))[0][0]
         tdoy_maturity = time_axis[itax_phase_transitions[ip]]
+    else:
+        tdoy_maturity = xdoy[it_harvest]
     
 
     tdoy_harvest = xdoy[itax_harvest]
