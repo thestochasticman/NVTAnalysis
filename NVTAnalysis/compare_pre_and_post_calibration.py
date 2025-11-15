@@ -31,6 +31,8 @@ def plot_observed_vs_initial_vs_optimised_parameters(
         priors[1],
         priors[2],
         priors[3],
+        priors[4],
+        seed=123
     )
     _, _, target_df = get_target_and_uncertainity_from_query(query, sampler)
 
@@ -346,6 +348,7 @@ def compare_pre_and_post_calibration(
     makedirs(query_results_dir, exist_ok=True)
     if not prior_optimisation_mode:
         result = calibrate_dev(priors, query, 0, daesim_config, parameters)
+        print(result.fun)
     else:
         result = calibrate_dev(priors, query, 0, daesim_config, parameters)
     optimised_parameters = np.around(np.array(result.x)).astype(int)
@@ -428,6 +431,12 @@ def test():
     # priors = np.array([0.05, 0.50, 0.20, 0.20])
     # priors = np.array([0.05, 0.36, 0.04, 0.50])
     priors = np.array([10/109, 48/109, 18/109, 23/109])
+    priors = np.array([0.09253724, 0.36458138, 0.14225611, 0.288832])
+    priors = np.array([0.08092954, 0.42068518, 0.19754289, 0.26959304, 0.25406048])
+    priors = np.array( [0.08092954, 0.42068518, 0.19754289, 0.26959304, 0.25406048])
+    priors = np.array([0.08173807, 0.35702345, 0.17887401, 0.24621461, 0.25752345])
+    priors = np.array([0.04112718, 0.40682116, 0.17449948, 0.27125969, 0.29341721])
+    priors = np.array([0.09095077, 0.33781626, 0.18560119, 0.29296343, 0.28275964])
     # print([priors])
     for query in queries:
         compare_pre_and_post_calibration(priors, query, experiment_df)

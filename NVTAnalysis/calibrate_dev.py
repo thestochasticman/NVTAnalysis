@@ -37,6 +37,8 @@ def test():
     experiment_df, queries = get_n_representative_sites(tmp_dir=tmp_dir, out_dir=out_dir)
     priors = np.array([0.05181449, 0.47179122, 0.10498441, 0.29451112])
     priors = np.array([0.05, 0.50, 0.20, 0.20])
+    priors = np.array([0.08092954, 0.42068518, 0.19754289, 0.26959304, 0.25406048])
+
     # priors = [0.06582943, 0.52652136, 0.1873288, 0.22032042]
     out = calibrate_dev(priors, queries[3])
     print(out.fun)

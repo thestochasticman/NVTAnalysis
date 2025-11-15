@@ -13,7 +13,9 @@ def objective_function(params: np.ndarray, params_info: DataFrame, queries: list
         priors[0],
         priors[1],
         priors[2],
-        priors[3]
+        priors[3],
+        priors[4],
+        seed=123
     )
     for q in queries:
         model_outputs = model_function(int_params, params_info, q, training_mode=True)
@@ -21,11 +23,10 @@ def objective_function(params: np.ndarray, params_info: DataFrame, queries: list
         observations = observations[:-1]
 
         model_outputs = model_outputs[:-1]
-        model_outputs[-1] = model_outputs[-1]
     
-        observations[1] = observations[1] - 35
-        observations[2] = observations[2] - 42
-        observations[-1] = observations[-1] + 7
+        # observations[1] = observations[1] - 35
+        # observations[2] = observations[2] - 42
+        # observations[-1] = observations[-1] + 7
         # observations_unc_sigma = observations_unc_sigma[:-1] + 14
         error = np.mean(((model_outputs - observations) ** 2))
         # error = ((model_outputs - observations) ** 2) / (observations_unc_sigma**2)
