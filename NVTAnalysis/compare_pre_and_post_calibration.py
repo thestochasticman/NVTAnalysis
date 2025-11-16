@@ -382,35 +382,34 @@ def compare_pre_and_post_calibration(
             experiment,
             plot_destination=f'{query_results_dir}/original_dev_params_run'
         )
+
+        experiment_row = experiment_df[experiment_df['TrialCode'] == query.stub]
+        experiment_yield = experiment_row['Single Site Yield'].iloc[0]
+    
+        if not prior_optimisation_mode:
+            comparision = {
+                'pre_optimisation_error': pre_optimisation_yield  - experiment_yield,
+                'post_optimisation_error': post_opimisation_yield - experiment_yield,
+                'experiment_yield': experiment_yield,
+                'pre_optimisation_yield': pre_optimisation_yield,
+                'post_optimisation_yield': post_opimisation_yield,
+                'Trial Code': query.stub
+            }
+
+            dump(comparision, open(f'{query_results_dir}/comparision.json', 'w+'))
+
+        print(priors, post_opimisation_yield - experiment_yield, query.stub)
+        return (post_opimisation_yield - experiment_yield)**2
     
     else:
         post_opimisation_yield = only_get_yield_from_model(
             optimised_parameters,
             experiment
         )
-
-        pre_optimisation_yield = only_get_yield_from_model(
-            experiment.parameters.init,
-            experiment
-        )
-
-    experiment_row = experiment_df[experiment_df['TrialCode'] == query.stub]
-    experiment_yield = experiment_row['Single Site Yield'].iloc[0]
-    
-    if not prior_optimisation_mode:
-        comparision = {
-            'pre_optimisation_error': pre_optimisation_yield  - experiment_yield,
-            'post_optimisation_error': post_opimisation_yield - experiment_yield,
-            'experiment_yield': experiment_yield,
-            'pre_optimisation_yield': pre_optimisation_yield,
-            'post_optimisation_yield': post_opimisation_yield,
-            'Trial Code': query.stub
-        }
-
-        dump(comparision, open(f'{query_results_dir}/comparision.json', 'w+'))
-
-    print(priors, post_opimisation_yield - experiment_yield, query.stub)
-    return (post_opimisation_yield - experiment_yield)**2
+        experiment_row = experiment_df[experiment_df['TrialCode'] == query.stub]
+        experiment_yield = experiment_row['Single Site Yield'].iloc[0]
+        print(priors, post_opimisation_yield - experiment_yield, query.stub)
+        return (post_opimisation_yield - experiment_yield)**2
 
 
 def test():
@@ -440,11 +439,13 @@ def test():
     # priors = np.array([0.09095077, 0.33781626, 0.18560119, 0.29296343, 0.28275964])
     # print([priors])
     priors = np.array([0.09095077, 0.33781626, 0.18560119, 0.29296343, 0.28275964])
-    # priors = np.array([0.06772111, 0.387945, 0.18392193, 0.27370856, 0.29341721])
-    # priors = np.array([0.09206228, 0.38092474, 0.1480234, 0.28456559, 0.20515294])
+
+    priors = np.array([0.09488161, 0.40916199, 0.17701807, 0.27063103, 0.2833466])
+    priors = np.array([0.04112718, 0.40682115, 0.17449948, 0.27125969, 0.29341721])
+    priors = np.array([0.09095077, 0.33781626, 0.18560119, 0.29296343, 0.28275964])
     for query in queries:
         compare_pre_and_post_calibration(priors, query, experiment_df)
-    # compare_pre_and_post_calibration(priors, queries[3], experiment_df)
+    compare_pre_and_post_calibration(priors, queries[1], experiment_df)
 
 if __name__ == '__main__':
     test()

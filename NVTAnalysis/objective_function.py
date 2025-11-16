@@ -25,7 +25,7 @@ def objective_function(params: np.ndarray, params_info: DataFrame, queries: list
         model_outputs = model_outputs[:-1]
     
         # observations[1] = observations[1] - 35
-        # observations[2] = observations[2] - 42
+        # observations[2] = observations[2] - 42zz
         # observations[-1] = observations[-1] + 7
         # observations_unc_sigma = observations_unc_sigma[:-1] + 14
         error = np.mean(((model_outputs - observations) ** 2))
