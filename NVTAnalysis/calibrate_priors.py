@@ -37,7 +37,7 @@ def calibrate_priors(
         )->np.ndarray:
     priors = np.array([0.05, 0.50, 0.20, 0.20])
     # bounds = np.array([[0.03, 0.10], [0.30, 0.60], [0.10, 0.30], [0.10, 0.30]])
-    bounds = np.array([[0.03, 0.10], [0.30, 0.50], [0.05, 0.25], [0.2, 0.30], [0, 0.30]])
+    bounds = np.array([[0.03, 0.10], [0.25, 0.4], [0.05, 0.25], [0.2, 0.30], [0, 0.30]])
 
     
     result = differential_evolution(
@@ -60,6 +60,6 @@ def test():
     tmp_dir = data_dir
     out_dir = data_dir
     experiment_df, queries = get_n_representative_sites(tmp_dir=tmp_dir, out_dir=out_dir)
-    calibrate_priors(queries[6], experiment_df)
+    calibrate_priors(queries[5], experiment_df)
 if __name__ == '__main__':
     test()

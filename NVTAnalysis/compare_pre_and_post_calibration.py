@@ -442,10 +442,10 @@ def test():
 
     priors = np.array([0.09488161, 0.40916199, 0.17701807, 0.27063103, 0.2833466])
     priors = np.array([0.04112718, 0.40682115, 0.17449948, 0.27125969, 0.29341721])
-    priors = np.array([0.09095077, 0.33781626, 0.18560119, 0.29296343, 0.28275964])
+    priors = np.array([0.09095077, 0.33781626, 0.18560119, 0.29296343, 0.28275964]) # probably best one 
     for query in queries:
         compare_pre_and_post_calibration(priors, query, experiment_df)
-    compare_pre_and_post_calibration(priors, queries[1], experiment_df)
+    # compare_pre_and_post_calibration(priors, queries[5], experiment_df)
 
 if __name__ == '__main__':
     test()
